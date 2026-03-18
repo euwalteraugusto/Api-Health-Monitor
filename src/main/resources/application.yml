@@ -1,0 +1,126 @@
+server:
+  port: 8080
+  # Habilita Virtual Threads no Tomcat (Spring Boot 3.2+)
+  # Isso faz cada request HTTP rodar em uma Virtual Thread
+  tomcat:
+    threads:
+      virtual:
+        enabled: true
+
+spring:
+  application:
+    name: api-health-monitor
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:healthmonitor}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      # Pool de conexões com o banco
+      # Manter pequeno: Virtual Threads são muitas, mas conexões PG são limitadas
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: HealthMonitorPool
+
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Em produção, nunca use create/create-drop!
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        # Batch inserts para HealthChecks (performance)
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+# ─── Monitor Configuration ────────────────────────────────────────────────────
+monitor:
+  scheduler:
+    tick-interval-ms: 10000       # Tick do scheduler (10s)
+    max-concurrent-checks: 500    # Máx de checks simultâneos por tick
+    cleanup-cron: "0 0 3 * * *"   # Limpeza diária às 3h
+
+  http:
+    connection-timeout-ms: 3000   # Timeout de conexão TCP
+    max-connections: 2000         # Pool de conexões HTTP
+    pending-acquire-timeout-ms: 10000
+
+# ─── Actuator / Métricas ──────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:local}
+
+# ─── OpenAPI ──────────────────────────────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+  api-docs:
+    path: /v3/api-docs
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.monitor: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    # Logs estruturados para facilitar parsing por ferramentas como Loki/ELK
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ─── Resilience4j ─────────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      monitorCheck:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+
+  retry:
+    instances:
+      notificationSend:
+        maxAttempts: 3
+        waitDuration: 1s
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException

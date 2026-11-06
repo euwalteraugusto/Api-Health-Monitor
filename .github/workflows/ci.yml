@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"   # igual a <java.version> do pom.xml
+          cache: maven
+      # O ubuntu-latest já tem Docker, necessário para os testes com Testcontainers.
+      - name: Build e testes
+        run: mvn -B verify

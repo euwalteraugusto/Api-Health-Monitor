@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Monitor → HttpCheckClient → MonitoringService → DB → Estado atualizado
  */
 @SpringBootTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class MonitoringServiceIntegrationTest {
 

@@ -23,6 +23,8 @@
         <resilience4j.version>2.2.0</resilience4j.version>
         <micrometer.version>1.12.3</micrometer.version>
         <testcontainers.version>1.19.6</testcontainers.version>
+        <!-- flyway-database-postgresql só existe a partir do Flyway 10 e não é gerenciado pelo BOM do Spring Boot 3.2 -->
+        <flyway.version>10.4.1</flyway.version>
     </properties>
 
     <dependencies>
@@ -92,6 +94,7 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
         <!-- Lombok -->

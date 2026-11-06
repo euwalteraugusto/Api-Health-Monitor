@@ -1,0 +1,32 @@
+# Build
+target/
+build/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/
+*.swp
+
+# Ambiente / segredos
+.env
+.env.*
+!.env.example
+
+# Logs e SO
+*.log
+logs/
+.DS_Store
+Thumbs.db

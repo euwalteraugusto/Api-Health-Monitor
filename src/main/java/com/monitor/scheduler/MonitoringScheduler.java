@@ -132,7 +132,7 @@ public class MonitoringScheduler {
 
         // Despacha cada monitor para sua própria Virtual Thread
         List<Future<?>> futures = batch.stream()
-                .map(monitor -> virtualThreadExecutor.submit(() -> {
+                .<Future<?>>map(monitor -> virtualThreadExecutor.submit(() -> {
                     activeChecks.incrementAndGet();
                     try {
                         monitoringService.performCheck(monitor);
